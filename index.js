@@ -53,13 +53,16 @@ app.post('/api/send-confirmation', async (req, res) => {
       </div>
     `;
 
+    const fromAddress = process.env.MAIL_FROM || process.env.GMAIL_USER;
+    const fromName = process.env.MAIL_FROM_NAME || 'Styleur';
+    const replyTo = process.env.MAIL_REPLY_TO || fromAddress;
+    const bccAddress = process.env.MAIL_BCC || process.env.GMAIL_USER;
+
     const mailOptions = {
-      from: {
-        name: 'Styleur',
-        address: process.env.GMAIL_USER
-      },
+      from: { name: fromName, address: fromAddress },
       to: email,
-      bcc: process.env.GMAIL_USER, // copy for archive
+      replyTo,
+      bcc: bccAddress,
       subject: 'Bevestiging: je aanvraag is ontvangen',
       html
     };
