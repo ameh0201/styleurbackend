@@ -95,6 +95,49 @@ app.post('/api/send-confirmation', async (req, res) => {
   }
 });
 
+// Simple GET endpoint: /api/send?email=...
+app.get('/api/send', async (req, res) => {
+  try {
+    const recipientEmail = (req.query.email || '').toString().trim();
+    if (!recipientEmail || !/.+@.+\..+/.test(recipientEmail)) {
+      return res.status(400).json({ ok: false, error: 'Missing or invalid email' });
+    }
+
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD
+      }
+    });
+
+    const fromAddress = process.env.MAIL_FROM || process.env.GMAIL_USER;
+    const fromName = process.env.MAIL_FROM_NAME || 'Styleur';
+    const replyTo = process.env.MAIL_REPLY_TO || fromAddress;
+    const bccAddress = process.env.MAIL_BCC || process.env.GMAIL_USER;
+
+    const html = `<div style="font-family:Inter,Segoe UI,Arial,sans-serif;font-size:14px;color:#111;line-height:1.6;">
+      <p>Bedankt voor je aanvraag bij <strong>Styleur</strong>. Ik neem binnen 24 uur contact met je op.</p>
+      <p>Hartelijke groet,<br/>Styleur</p>
+    </div>`;
+
+    const info = await transporter.sendMail({
+      from: { name: fromName, address: fromAddress },
+      to: recipientEmail,
+      replyTo,
+      bcc: bccAddress,
+      subject: 'Bevestiging: je aanvraag is ontvangen',
+      html
+    });
+    return res.json({ ok: true, messageId: info.messageId });
+  } catch (err) {
+    console.error('Email send error (GET /api/send):', err);
+    return res.status(500).json({ ok: false, error: 'Failed to send email' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Email server listening on http://localhost:${PORT}`);
 });
