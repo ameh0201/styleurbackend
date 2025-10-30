@@ -21,8 +21,11 @@ app.post('/api/send-confirmation', async (req, res) => {
   try {
     const { service, firstName, lastName, email, phone, notes } = req.body || {};
 
-    if (!email || !firstName || !lastName) {
-      return res.status(400).json({ ok: false, error: 'Missing required fields' });
+    const isValidEmail = (value) => typeof value === 'string' && /.+@.+\..+/.test(value.trim());
+    const recipientEmail = typeof email === 'string' ? email.trim() : '';
+
+    if (!isValidEmail(recipientEmail) || !firstName || !lastName) {
+      return res.status(400).json({ ok: false, error: 'Missing or invalid fields', details: { firstName: !!firstName, lastName: !!lastName, email: recipientEmail } });
     }
 
     const transporter = nodemailer.createTransport({
@@ -60,15 +63,15 @@ app.post('/api/send-confirmation', async (req, res) => {
 
     const mailOptions = {
       from: { name: fromName, address: fromAddress },
-      to: email,
+      to: recipientEmail,
       replyTo,
       bcc: bccAddress,
       subject: 'Bevestiging: je aanvraag is ontvangen',
       html
     };
 
-    await transporter.sendMail(mailOptions);
-    return res.json({ ok: true });
+    const info = await transporter.sendMail(mailOptions);
+    return res.json({ ok: true, messageId: info.messageId });
   } catch (err) {
     console.error('Email send error:', err);
     return res.status(500).json({ ok: false, error: 'Failed to send email' });
