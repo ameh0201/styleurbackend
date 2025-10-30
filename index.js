@@ -8,12 +8,29 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+// Permissive CORS (supports file:// => Origin "null")
+const corsOptions = {
+  origin: function(origin, callback) {
+    // Allow any origin, including null (file://)
+    callback(null, true);
+  },
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type'],
+  credentials: false,
+  optionsSuccessStatus: 204
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json());
 
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ ok: true });
+});
+
+// Root route for quick up-check
+app.get('/', (req, res) => {
+  res.json({ ok: true, service: 'styleur-email', routes: ['/api/health', '/api/send-confirmation'] });
 });
 
 // POST /api/send-confirmation
